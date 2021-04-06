@@ -81,7 +81,7 @@ type Response struct {
 	// nil, means that "identity" encoding is used.
 	TransferEncoding []string
 
-	// Close records whether the header directed that the connection be
+	// Close records whether the header directed（指示） that the connection be
 	// closed after reading Body. The value is advice for clients: neither
 	// ReadResponse nor Response.Write ever closes a connection.
 	Close bool
@@ -93,6 +93,9 @@ type Response struct {
 	// and the "Content-Length" and "Content-Encoding" fields are deleted
 	// from the responseHeader. To get the original response from
 	// the server, set Transport.DisableCompression to true.
+	// 报告响应是否已压缩发送但已被http包解压缩。 如果为true，则从Body读取将产生未压缩的内容，
+	// 而不是从服务器实际设置的压缩内容，ContentLength设置为-1，并且从responseHeader中删除
+	// “Content-Length”和“ Content-Encoding”字段。 要从服务器获取原始响应，请将Transport.DisableCompression设置为true。
 	Uncompressed bool
 
 	// Trailer maps trailer keys to values in the same

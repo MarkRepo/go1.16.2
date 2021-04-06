@@ -177,6 +177,9 @@ type Type interface {
 	// and FieldByNameFunc returns no match.
 	// This behavior mirrors Go's handling of name lookup in
 	// structs containing embedded fields.
+	// FieldByNameFunc 以广度优先的顺序考虑结构本身中的字段，然后考虑任何嵌入式结构中的字段
+	// 停在最浅的嵌套深度，其中包含一个或多个满足匹配功能的字段。 如果该深度处的多个字段满足匹配功能，则它们会互相抵消，
+	// 并且FieldByNameFunc不返回匹配项。 此行为反映了Go在包含嵌入式字段的结构中对名称查找的处理。
 	FieldByNameFunc(match func(string) bool) (StructField, bool)
 
 	// In returns the type of a function type's i'th input parameter.
@@ -563,6 +566,7 @@ func newName(n, tag string, exported bool) name {
 /*
  * The compiler knows the exact layout of all the data structures above.
  * The compiler does not know about the data structures and methods below.
+ * 编译器知道上面所有数据结构的确切布局，编译器不知道下面的数据结构和方法
  */
 
 // Method represents a single method.
@@ -1110,6 +1114,7 @@ type StructField struct {
 // characters other than space (U+0020 ' '), quote (U+0022 '"'),
 // and colon (U+003A ':').  Each value is quoted using U+0022 '"'
 // characters and Go string literal syntax.
+// 一连串的 key:"value" 对，for example： `species:"gopher" color:"blue"`
 type StructTag string
 
 // Get returns the value associated with key in the tag string.

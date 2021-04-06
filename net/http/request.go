@@ -115,6 +115,8 @@ type Request struct {
 	// supplied on the Request-Line as stored in RequestURI.  For
 	// most requests, fields other than Path and RawQuery will be
 	// empty. (See RFC 7230, Section 5.3)
+	// 对于服务器请求，将从存储在RequestURI中的请求行上提供的URI解析URL。 
+	// 对于大多数请求，Path和RawQuery以外的其他字段将为空。 （请参阅RFC 7230，第5.3节）
 	//
 	// For client requests, the URL's Host specifies the server to
 	// connect to, while the Request's Host field optionally
@@ -150,10 +152,10 @@ type Request struct {
 	//		"Foo": {"Bar", "two"},
 	//	}
 	//
-	// For incoming requests, the Host header is promoted to the
+	// For incoming requests, the Host header is promoted to(被提升为) the
 	// Request.Host field and removed from the Header map.
 	//
-	// HTTP defines that header names are case-insensitive. The
+	// HTTP defines that header names are case-insensitive（不区分大小写）. The
 	// request parser implements this by using CanonicalHeaderKey,
 	// making the first character and any characters following a
 	// hyphen uppercase and the rest lowercase.
@@ -199,6 +201,7 @@ type Request struct {
 
 	// TransferEncoding lists the transfer encodings from outermost to
 	// innermost. An empty list denotes the "identity" encoding.
+	// TransferEncoding列出了从最外层到最内层的传输编码。 空列表表示 “identity” 编码。
 	// TransferEncoding can usually be ignored; chunked encoding is
 	// automatically added and removed as necessary when sending and
 	// receiving requests.
@@ -217,11 +220,11 @@ type Request struct {
 	Close bool
 
 	// For server requests, Host specifies the host on which the
-	// URL is sought. For HTTP/1 (per RFC 7230, section 5.4), this
+	// URL is sought(搜寻). For HTTP/1 (per RFC 7230, section 5.4), this
 	// is either the value of the "Host" header or the host name
 	// given in the URL itself. For HTTP/2, it is the value of the
-	// ":authority" pseudo-header field.
-	// It may be of the form "host:port". For international domain
+	// ":authority" pseudo-header field.(“：authority”伪标题字段的值。)
+	// It may be of the form "host:port". For international domain (对于国际域名)
 	// names, Host may be in Punycode or Unicode form. Use
 	// golang.org/x/net/idna to convert it to either format if
 	// needed.
@@ -230,6 +233,7 @@ type Request struct {
 	// Handler considers itself authoritative. The included
 	// ServeMux supports patterns registered to particular host
 	// names and thus protects its registered Handlers.
+	// (随附的ServeMux支持注册特定主机名的模式，从而保护其注册的处理程序。)
 	//
 	// For client requests, Host optionally overrides the Host
 	// header to send. If empty, the Request.Write method uses
@@ -268,9 +272,11 @@ type Request struct {
 	// For client requests, Trailer must be initialized to a map containing
 	// the trailer keys to later send. The values may be nil or their final
 	// values. The ContentLength must be 0 or -1, to send a chunked request.
+
 	// After the HTTP request is sent the map values can be updated while
 	// the request body is read. Once the body returns EOF, the caller must
 	// not mutate Trailer.
+	// (发送HTTP请求后，可以在读取请求正文的同时更新映射值。一旦正文返回EOF，调用方就不得使Trailer发生改变。)
 	//
 	// Few HTTP clients, servers, or proxies support HTTP trailers.
 	Trailer Header
@@ -312,7 +318,7 @@ type Request struct {
 
 	// Response is the redirect response which caused this request
 	// to be created. This field is only populated during client
-	// redirects.
+	// redirects.（Response 是导致创建此请求的重定向响应。仅在客户端重定向期间填充此字段。）
 	Response *Response
 
 	// ctx is either the client or server context. It should only

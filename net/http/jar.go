@@ -22,6 +22,6 @@ type CookieJar interface {
 
 	// Cookies returns the cookies to send in a request for the given URL.
 	// It is up to the implementation to honor the standard cookie use
-	// restrictions such as in RFC 6265.
+	// restrictions such as in RFC 6265. (具体实现取决于标准的cookie使用限制，例如RFC 6265中的限制。)
 	Cookies(u *url.URL) []*Cookie
 }

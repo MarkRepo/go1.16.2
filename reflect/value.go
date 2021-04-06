@@ -2165,7 +2165,16 @@ const (
 // Normally Chan's underlying value must be a channel and Send must be a zero Value.
 // If Chan is a zero Value, then the case is ignored, but Send must still be a zero Value.
 // When a receive operation is selected, the received Value is returned by Select.
-//
+
+// SelectCase描述select操作中的单条case。Case的类型由通信方向Dir决定。
+
+// 如果Dir是SelectDefault，该条case代表default case。Chan和Send字段必须是Value零值。
+
+// 如果Dir是SelectSend，该条case代表一个发送操作。Chan字段底层必须是一个chan类型，
+// Send的底层必须是可以直接赋值给该chan的成员类型的类型。如果Chan是Value零值，则不管Send字段是不是零值，该条case都会被忽略。
+
+// 如果Dir是SelectRecv，该条case代表一个接收操作。Chan字段底层必须是一个chan类型， 而Send必须是一个Value零值。
+// 如果Chan是Value零值，该条case会被忽略，但Send字段仍需是Value零值。当该条case被执行时，接收到的值会被Select返回
 type SelectCase struct {
 	Dir  SelectDir // direction of case
 	Chan Value     // channel to use (for send or receive)

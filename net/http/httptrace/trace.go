@@ -31,6 +31,7 @@ func ContextClientTrace(ctx context.Context) *ClientTrace {
 // the provided trace hooks, in addition to any previous hooks
 // registered with ctx. Any hooks defined in the provided trace will
 // be called first.
+// 除了之前注册的钩子，这个请求的钩子也会调用，并且优先调用
 func WithClientTrace(ctx context.Context, trace *ClientTrace) context.Context {
 	if trace == nil {
 		panic("nil trace")
@@ -74,7 +75,7 @@ func WithClientTrace(ctx context.Context, trace *ClientTrace) context.Context {
 //
 // ClientTrace currently traces a single HTTP request & response
 // during a single round trip and has no hooks that span a series
-// of redirected requests.
+// of redirected requests. （没有跨越一系列重定向请求的钩子。）
 //
 // See https://blog.golang.org/http-tracing for more.
 type ClientTrace struct {
@@ -82,12 +83,16 @@ type ClientTrace struct {
 	// retrieved from an idle pool. The hostPort is the
 	// "host:port" of the target or proxy. GetConn is called even
 	// if there's already an idle cached connection available.
+
+	// 获取连接前钩子
 	GetConn func(hostPort string)
 
 	// GotConn is called after a successful connection is
 	// obtained. There is no hook for failure to obtain a
 	// connection; instead, use the error from
 	// Transport.RoundTrip.
+
+	// 成功获取连接后调用，获取连接失败不会调用
 	GotConn func(GotConnInfo)
 
 	// PutIdleConn is called when the connection is returned to
@@ -98,6 +103,9 @@ type ClientTrace struct {
 	// PutIdleConn is called before the caller's Response.Body.Close
 	// call returns.
 	// For HTTP/2, this hook is not currently used.
+
+	// 连接放回连接池时调用，在 resp.Body.Close 调用返回之前调用
+	// 如果连接不可重用，该钩子不会调用
 	PutIdleConn func(err error)
 
 	// GotFirstResponseByte is called when the first byte of the response
@@ -112,6 +120,8 @@ type ClientTrace struct {
 	// returned before the final non-1xx response. Got1xxResponse is called
 	// for "100 Continue" responses, even if Got100Continue is also defined.
 	// If it returns an error, the client request is aborted with that error value.
+
+	// 如果该钩子返回失败，请求被abort
 	Got1xxResponse func(code int, header textproto.MIMEHeader) error
 
 	// DNSStart is called when a DNS lookup begins.
@@ -145,6 +155,8 @@ type ClientTrace struct {
 	// WroteHeaderField is called after the Transport has written
 	// each request header. At the time of this call the values
 	// might be buffered and not yet written to the network.
+	
+	// values 可能还在缓冲区
 	WroteHeaderField func(key string, value []string)
 
 	// WroteHeaders is called after the Transport has written
@@ -155,6 +167,7 @@ type ClientTrace struct {
 	// "Expect: 100-continue" and the Transport has written the
 	// request headers but is waiting for "100 Continue" from the
 	// server before writing the request body.
+	// 等待100 continue 时调用
 	Wait100Continue func()
 
 	// WroteRequest is called with the result of writing the

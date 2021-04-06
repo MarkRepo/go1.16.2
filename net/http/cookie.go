@@ -41,6 +41,8 @@ type Cookie struct {
 // the browser to send this cookie along with cross-site requests. The main
 // goal is to mitigate the risk of cross-origin information leakage, and provide
 // some protection against cross-site request forgery attacks.
+// (SameSite 允许服务器定义cookie属性，从而使浏览器无法将此cookie与跨站点请求一起发送。 
+//  主要目标是减轻跨域信息泄漏的风险，并提供针对跨站点请求伪造攻击的某种保护。)
 //
 // See https://tools.ietf.org/html/draft-ietf-httpbis-cookie-same-site-00 for details.
 type SameSite int

@@ -293,7 +293,7 @@ func (j *Jar) setCookies(u *url.URL, cookies []*http.Cookie, now time.Time) {
 }
 
 // canonicalHost strips port from host if present and returns the canonicalized
-// host name.
+// host name. 从host剥离端口（如果存在）并返回规范化的主机名
 func canonicalHost(host string) (string, error) {
 	var err error
 	host = strings.ToLower(host)

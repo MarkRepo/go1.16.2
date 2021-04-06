@@ -1949,6 +1949,7 @@ func (c *conn) serve(ctx context.Context) {
 		// in parallel even if their responses need to be serialized.
 		// But we're not going to implement HTTP pipelining because it
 		// was never deployed in the wild and the answer is HTTP/2.
+		// 处理http请求
 		serverHandler{c.server}.ServeHTTP(w, w.req)
 		w.cancelCtx()
 		if c.hijacked() {
@@ -2215,7 +2216,7 @@ func RedirectHandler(url string, code int) Handler {
 	return &redirectHandler{url, code}
 }
 
-// ServeMux is an HTTP request multiplexer.
+// ServeMux is an HTTP request multiplexer(复用器).
 // It matches the URL of each incoming request against a list of registered
 // patterns and calls the handler for the pattern that
 // most closely matches the URL.
@@ -2244,7 +2245,7 @@ func RedirectHandler(url string, code int) Handler {
 // Patterns may optionally begin with a host name, restricting matches to
 // URLs on that host only. Host-specific patterns take precedence over
 // general patterns, so that a handler might register for the two patterns
-// "/codesearch" and "codesearch.google.com/" without also taking over
+// "/codesearch" and "codesearch.google.com/" without also taking over(接管)
 // requests for "http://www.google.com/".
 //
 // ServeMux also takes care of sanitizing the URL request path and the Host
@@ -2470,6 +2471,7 @@ func (mux *ServeMux) Handle(pattern string, handler Handler) {
 	e := muxEntry{h: handler, pattern: pattern}
 	mux.m[pattern] = e
 	if pattern[len(pattern)-1] == '/' {
+		// 有序插入
 		mux.es = appendSorted(mux.es, e)
 	}
 

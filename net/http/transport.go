@@ -84,15 +84,21 @@ const DefaultMaxIdleConnsPerHost = 2
 // ClientTrace.Got1xxResponse.
 //
 // Transport only retries a request upon encountering a network error
-// if the request is idempotent and either has no body or has its
+// if the request is idempotent(幂等) and either has no body or has its
 // Request.GetBody defined. HTTP requests are considered idempotent if
 // they have HTTP methods GET, HEAD, OPTIONS, or TRACE; or if their
 // Header map contains an "Idempotency-Key" or "X-Idempotency-Key"
 // entry. If the idempotency key value is a zero-length slice, the
 // request is treated as idempotent but the header is not sent on the
 // wire.
+
+// 如果请求是幂等的且没有主体或已定义其Request.GetBody，则transport仅在遇到网络错误时重试该请求。
+// 如果HTTP请求具有HTTP方法GET，HEAD，OPTIONS或TRACE，则它们被认为是幂等的。
+// 或者其header 包含“Idempotency-Key”或“X-Idempotency-Key”条目。
+// 如果幂等性键值是零长度的切片，则将请求视为幂等，但header不会发送。
 type Transport struct {
 	idleMu       sync.Mutex
+	// 用户已请求关闭所有空闲的conns
 	closeIdle    bool                                // user has requested to close all idle conns
 	idleConn     map[connectMethodKey][]*persistConn // most recently used at end
 	idleConnWait map[connectMethodKey]wantConnQueue  // waiting getConns
@@ -101,6 +107,7 @@ type Transport struct {
 	reqMu       sync.Mutex
 	reqCanceler map[cancelKey]func(error)
 
+	// 协议注册 RegisterProtocol
 	altMu    sync.Mutex   // guards changing altProto only
 	altProto atomic.Value // of nil or map[string]RoundTripper, key is URI scheme
 
@@ -271,7 +278,7 @@ type Transport struct {
 	// nextProtoOnce guards initialization of TLSNextProto and
 	// h2transport (via onceSetNextProtoDefaults)
 	nextProtoOnce      sync.Once
-	h2transport        h2Transport // non-nil if http2 wired up
+	h2transport        h2Transport // non-nil if http2 wired up（已连接）
 	tlsNextProtoWasNil bool        // whether TLSNextProto was nil when the Once fired
 
 	// ForceAttemptHTTP2 controls whether HTTP/2 is enabled when a non-zero
@@ -283,6 +290,7 @@ type Transport struct {
 }
 
 // A cancelKey is the key of the reqCanceler map.
+// 我们将 *Request包装为这种类型，因为我们要使用原始请求，而不是roundTrip创建的任何临时请求。
 // We wrap the *Request in this type since we want to use the original request,
 // not any transient one created by roundTrip.
 type cancelKey struct {
@@ -492,6 +500,7 @@ func (t *Transport) useRegisteredProtocol(req *Request) bool {
 // or nil for the normal case of using the Transport.
 func (t *Transport) alternateRoundTripper(req *Request) RoundTripper {
 	if !t.useRegisteredProtocol(req) {
+		// https + http1
 		return nil
 	}
 	altProto, _ := t.altProto.Load().(map[string]RoundTripper)
@@ -576,6 +585,8 @@ func (t *Transport) roundTrip(req *Request) (*Response, error) {
 		// host (for http or https), the http proxy, or the http proxy
 		// pre-CONNECTed to https server. In any case, we'll be ready
 		// to send it requests.
+		
+		// 获取一个连接
 		pconn, err := t.getConn(treq, cm)
 		if err != nil {
 			t.setReqCanceler(cancelKey, nil)
@@ -639,6 +650,7 @@ func (r *readTrackingBody) Close() error {
 
 // setupRewindBody returns a new request with a custom body wrapper
 // that can report whether the body needs rewinding.
+// 当请求没有GetBody但尚未完全读取body时，这使得rewindBody避免了错误结果。
 // This lets rewindBody avoid an error result when the request
 // does not have GetBody but the body hasn't been read at all yet.
 func setupRewindBody(req *Request) *Request {
@@ -650,6 +662,7 @@ func setupRewindBody(req *Request) *Request {
 	return &newReq
 }
 
+// 返回一个body 被倒带的新请求。 如果body不需要倒带，它将返回未修改的req。
 // rewindBody returns a new request with the body rewound.
 // It returns req unmodified if the body does not need rewinding.
 // rewindBody takes care of closing req.Body when appropriate
@@ -1176,7 +1189,7 @@ func (t *Transport) dial(ctx context.Context, network, addr string) (net.Conn, e
 // The conn may be gotten by dialing or by finding an idle connection,
 // or a cancellation may make the conn no longer wanted.
 // These three options are racing against each other and use
-// wantConn to coordinate and agree about the winning outcome.
+// wantConn to coordinate and agree about the winning outcome(获胜结果).
 type wantConn struct {
 	cm    connectMethod
 	key   connectMethodKey // cm.key()
@@ -1246,9 +1259,9 @@ type wantConnQueue struct {
 	// popFront is trivial (headPos++) on the first stage, and
 	// pushBack is trivial (append) on the second stage.
 	// If the first stage is empty, popFront can swap the
-	// first and second stages to remedy the situation.
+	// first and second stages to remedy(修正) the situation.
 	//
-	// This two-stage split is analogous to the use of two lists
+	// This two-stage split is analogous（类似） to the use of two lists
 	// in Okasaki's purely functional queue but without the
 	// overhead of reversing the list when swapping stages.
 	head    []*wantConn
@@ -1790,12 +1803,14 @@ var _ io.ReaderFrom = (*persistConnWriter)(nil)
 //	https://proxy.com|http            https to proxy, http to anywhere after that
 //
 type connectMethod struct {
-	_            incomparable
+	_            incomparable // 不可比较的实现(原理？)
 	proxyURL     *url.URL // nil for no proxy, else full proxy URL
 	targetScheme string   // "http" or "https"
 	// If proxyURL specifies an http or https proxy, and targetScheme is http (not https),
 	// then targetAddr is not included in the connect method key, because the socket can
 	// be reused for different targetAddr values.
+	// 如果proxyURL指定一个http或https代理，并且targetScheme是http（不是https），
+	// 则connect method key 中不包含targetAddr，因为套接字可以重用于不同的targetAddr值。
 	targetAddr string
 	onlyH1     bool // whether to disable HTTP/2 and force HTTP/1
 }
@@ -1860,7 +1875,7 @@ func (k connectMethodKey) String() string {
 	return fmt.Sprintf("%s|%s%s|%s", k.proxy, k.scheme, h1, k.addr)
 }
 
-// persistConn wraps a connection, usually a persistent one
+// persistConn wraps a connection, usually a persistent（持久） one
 // (but may be used for non-keep-alive requests as well)
 type persistConn struct {
 	// alt optionally specifies the TLS NextProto RoundTripper.
